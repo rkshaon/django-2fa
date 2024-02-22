@@ -1,1 +1,4 @@
 /env
+/django_2fa/__pycache__
+/user_api/__pycache__
+/user_api/migrations

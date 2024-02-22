@@ -1,0 +1,16 @@
+import base64
+from PIL import Image
+from io import BytesIO
+
+
+def generate_image_from_base64(base64_string, output_filename):
+    image_data = base64.b64decode(base64_string)    
+    image = Image.open(BytesIO(image_data))
+    image.save(output_filename)
+
+
+if __name__ == "__main__":
+    base64_string = 'iVBORw0KGgoAAAANSUhEUgAAAeoAAAHqAQAAAADjFjCXAAAEHUlEQVR4nO2dTY6rSBCEI6eQvMRSH8BHgRvMkVpzpLkBHMU3KJaWQDGLrD/3mxXw1O3nyIXVgD9hpFD+VZFtxAGb/zpCA8KFCxcuXLhw4cLPxS1ZBxsB2Lh0wHzdrB76OSz5q+N5dxf+pvhAkowAsHTghM0w3C/kBADzNX3bRgSSJJ/xg3cX/qb4kt3XfFuB+Uba2D8Ms5kB/SN/ADCz7uS7C39vnIybAYsZp6UDhhiI4d4BWC6/dll+1o8X/qK4jcuFNiIQ860E0p4E+od5wP19dxf+HniOlT0BLACxbEYsVwPQrZj/fhgBgECgDf8Crcd76WcX/s34bGZm11Qv2IhADBGwz/uFbQ2LzUvYU+8u/M1w93XVfXG+PYzzbQWBFUC/gvM1IJcUz7ndSz+78O/C4X2QgWt7bupXcMoODwNXcPILLOdITi/97MK/C0+qQ7+6kDDEQDKGcm4FhghXnZe06FfHpDrh+6zxdUMEvF51cSErbMKTOotEpTrh+yw5LSD5Ne+SIJBTERdjOszSI6U64Qcs+bqYY6iHz+rr/CslpBbpSXXC95uriTF4mCWZK9cJaJzblwax8jrhB6z6MD90bxaBpLWe2eHlMqMJvVKd8F1W42UqKfJfqVWSMzxvpMC7KWnjiVQnfJ/VaiJ5OOS2XL3KmJxg8nA9pTrhR+ypLC1hFjnNm0ojpQhO/TrhZ3ZOIpq42ojQa1hvELeRWKoTvs+y6rI3c9dXc7jcw3taJVNeJ/yQtRE2hkZ/yZt5NZFbeozJ9cnXCT9guYat67BA06AbavuuT2leY1Kd8F2Wq9RQPpDFVXpzdW8AcpiV6oQfsCaRS+VDaPK6FFIjUP2fHyrCCt9vVXXJh8XA6uuesrniExVhhZ+Bp2xuhY1+YrO6q8nstsL3t9sVaF5j/Bk/Xvir4WhdVwRqCzhdjbVf3H4owgo/YFlxWU0pfSuv+Pd5L/Evu5+kOuF7Lcmn5HXem6uLYc2yWC5uyyY7qU74Pqsujf9veX/xkNVZ1zCkOuH7rAmkbk1IRfsX+tJDhiKs8ENWK4d2CczzutS+a9rCTZkh1Qk/Aec/1sHGshgBn66Teig+ACC99h80SUz4EfuSxeU3Xp9SurKDuC7VytcJ328+cSKPLQmr1xXA1tXvEMsHCDwMWD5WzLc1X33pZxf+zfhQusTzdTMPrl4+3Ls8SfEaStURaOOJdxf+pnhZ5BruaTgxp8UsDYf1kcQd0ujOxfIku5/x44W/PF682SdJTnk4rH3mfjGnnvJ1wg9Y9+WY8DGdDwOwdRhiGjNGADD0W4chbsrrhB+wr7M6AQCGHuBsgV4+DHEDsHysxHKhAYF2yt2FvyfedonrXs66l9i3BZSmcd3frs6J8N1m+u91woULFy5cuHDhfwT+HwdvVz1+3bpAAAAAAElFTkSuQmCC'
+    output_filename = "generated_image.png"
+    
+    generate_image_from_base64(base64_string, output_filename)
