@@ -16,6 +16,8 @@ import qrcode
 import secrets
 import binascii
 import re
+
+from django.contrib.auth.models import User
 from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
@@ -28,7 +30,6 @@ def generate_image_from_base64(base64_string, output_filename):
 
 def generate_secret_key(length=20, encoded=False):
     secret_key = secrets.token_bytes(length)
-    print(secret_key, type(secret_key))
     # return b'\xb5\xde\x93\x7f\x15\xd7\x9f\xadX{\xe5\xac\\P\xf6#\xb1$J\xf9'
     # return "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNG"    
     secret_key = "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNA"
@@ -41,7 +42,6 @@ def generate_secret_key(length=20, encoded=False):
         hex_string = "0" + hex_string
 
     bytes_string = bytes.fromhex(hex_string)
-    print(bytes_string, type(bytes_string))
 
     return secret_key
     if encoded:
@@ -86,12 +86,7 @@ class TFASetupView(APIView):
     
     def post(self, request, *args, **kwargs):
         username = 'rkshaon'
-        secret = generate_secret_key(encoded=True)
-        # secret = binascii.hexlify(
-        #     base64.b32decode(secret)).decode()
-        # secret = secret.encode('utf-8')
-        # secret = secret.hex()
-        
+        secret = generate_secret_key(encoded=True)        
         otp_value = request.data.get('otp')
         otp_verified = verify_otp(secret, otp_value)
 
@@ -103,12 +98,9 @@ class TFASetupView(APIView):
             hex_string = "0" + hex_string
 
         bytes_string = bytes.fromhex(hex_string)
-        print(bytes_string, type(bytes_string))
         secret = base64.b32encode(bytes_string).decode()
-        print(secret, type(secret))
         secret = secret.encode('utf-8')
         secret = secret.hex()
-        print(secret, type(secret))
 
         if otp_verified:
             device = TOTPDevice.objects.create(user=request.user, name=username, confirmed=True, key=secret)
@@ -116,3 +108,14 @@ class TFASetupView(APIView):
             return Response({'message': 'OTP verification successful.'})
         else:
             return Response({'message': 'OTP verification failed.'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TFADisableView(APIView):
+    def post(self, request, *args, **kwargs):
+        user = User.objects.get(username='admin')
+        devices = TOTPDevice.objects.filter(user=user)
+
+        for device in devices:
+            device.delete()
+            
+        return Response({'message': '2FA disabled.'})
