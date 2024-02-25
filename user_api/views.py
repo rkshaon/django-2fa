@@ -14,8 +14,9 @@ import pyotp
 import base64
 import qrcode
 import secrets
-
-# from otp_totp.models import 
+import binascii
+import re
+from django_otp.plugins.otp_totp.models import TOTPDevice
 
 
 
@@ -25,12 +26,38 @@ def generate_image_from_base64(base64_string, output_filename):
     image.save(output_filename)
 
 
-def generate_secret_key(length=20):
+def generate_secret_key(length=20, encoded=False):
     secret_key = secrets.token_bytes(length)
+    print(secret_key, type(secret_key))
     # return b'\xb5\xde\x93\x7f\x15\xd7\x9f\xadX{\xe5\xac\\P\xf6#\xb1$J\xf9'
-    return "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNG"
-    print(secret_key)
-    return base64.b32encode(secret_key).decode()
+    # return "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNG"    
+    secret_key = "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNA"
+
+    # Remove any non-hexadecimal characters from the string
+    hex_string = re.sub(r'[^a-fA-F0-9]', '', secret_key)
+
+    # If the length of the hex string is odd, pad it with a leading zero
+    if len(hex_string) % 2 != 0:
+        hex_string = "0" + hex_string
+
+    bytes_string = bytes.fromhex(hex_string)
+    print(bytes_string, type(bytes_string))
+
+    return secret_key
+    if encoded:
+        print(f"1. secret_key: {secret_key}, type: {type(secret_key)}")
+        secret_key = secret_key.encode('utf-8')
+        # print(f"2. secret_key: {secret_key}, type: {type(secret_key)}")
+        # secret_key = binascii.hexlify(secret_key).decode("utf-8")
+        # print(f"3. secret_key: {secret_key}, type: {type(secret_key)}")
+        return secret_key
+    else:
+        return secret_key
+
+    # print(secret_key, type(secret_key))
+    secret_key = base64.b32encode(secret_key).decode()
+    # print(secret_key, type(secret_key))
+    return secret_key
 
 
 def verify_otp(secret, otp_value):
@@ -59,11 +86,33 @@ class TFASetupView(APIView):
     
     def post(self, request, *args, **kwargs):
         username = 'rkshaon'
-        secret = generate_secret_key()
+        secret = generate_secret_key(encoded=True)
+        # secret = binascii.hexlify(
+        #     base64.b32decode(secret)).decode()
+        # secret = secret.encode('utf-8')
+        # secret = secret.hex()
+        
         otp_value = request.data.get('otp')
         otp_verified = verify_otp(secret, otp_value)
 
+        # Remove any non-hexadecimal characters from the string
+        hex_string = re.sub(r'[^a-fA-F0-9]', '', secret)
+
+        # If the length of the hex string is odd, pad it with a leading zero
+        if len(hex_string) % 2 != 0:
+            hex_string = "0" + hex_string
+
+        bytes_string = bytes.fromhex(hex_string)
+        print(bytes_string, type(bytes_string))
+        secret = base64.b32encode(bytes_string).decode()
+        print(secret, type(secret))
+        secret = secret.encode('utf-8')
+        secret = secret.hex()
+        print(secret, type(secret))
+
         if otp_verified:
+            device = TOTPDevice.objects.create(user=request.user, name=username, confirmed=True, key=secret)
+            device.save()
             return Response({'message': 'OTP verification successful.'})
         else:
             return Response({'message': 'OTP verification failed.'}, status=status.HTTP_400_BAD_REQUEST)
