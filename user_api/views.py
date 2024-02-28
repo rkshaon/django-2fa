@@ -87,8 +87,7 @@ class TFASetupView(APIView):
         secret = urllib.parse.quote(secret, safe='')
         
         otpauth_url = f"otpauth://totp/{username}?secret={secret}&algorithm=SHA1&digits=6&period=30"
-        print(f"\nOTP auth URL: {otpauth_url}\n")
-        
+
         qr = qrcode.make(otpauth_url)
         buffered = BytesIO()
         qr.save(buffered, format="PNG")
@@ -104,27 +103,28 @@ class TFASetupView(APIView):
     def post(self, request, *args, **kwargs):
         username = 'rkshaon'
         user = User.objects.get(username=username)
-        # secret = generate_secret_key(encoded=True)        
         secret = generate_secret_key()
         otp_value = request.data.get('otp')
-        otp_verified = verify_otp(secret, otp_value)
-        print(otp_verified)
-        # Remove any non-hexadecimal characters from the string
-        hex_string = secret
-        hex_string = re.sub(r'[^a-fA-F0-9]', '', hex_string)
+        secret = re.sub(r'[^a-fA-F0-9]', '', secret)
+        
+        if len(secret) % 2 != 0:
+            secret = "0" + secret
 
-        # If the length of the hex string is odd, pad it with a leading zero
-        if len(hex_string) % 2 != 0:
-            hex_string = "0" + hex_string
-
-        bytes_string = bytes.fromhex(hex_string)
-        # secret = base64.b32encode(bytes_string).decode()
-        secret = base64.b64encode(bytes_string).decode()
+        secret = bytes.fromhex(secret)
+        secret = base64.b64encode(secret).decode()
         secret = secret.encode('utf-8')
-        # secret = bytes_string.encode('utf-8')
         secret = secret.hex()
-        otp_verified = verify_otp(secret, otp_value)
-        print(otp_verified)
+        v_secret = secret
+
+        if len(v_secret) % 2 != 0:
+            v_secret = "0" + v_secret
+
+        v_secret = bytes.fromhex(v_secret)
+        v_secret = base64.b32encode(v_secret)
+        v_secret = v_secret.decode('utf-8')
+        
+        otp_verified = verify_otp(v_secret, otp_value)
+
         if otp_verified:
             device = TOTPDevice.objects.create(user=user, name=username, confirmed=True, key=secret)
             device.save()
@@ -152,32 +152,16 @@ class TFALoginView(APIView):
         otp_verified = False
 
         for device in devices:
-            print('Device', device, otp_value)
-            print('Key', device.key, type(device.key))
-            # hex_string = "425048344958583358493d3d3d3d3d3d"
             hex_string = device.key
-            # print(f'Hex String: {hex_string}, Type: {type(hex_string)}')
-            
-            # Add padding if the length of the string is odd
+
             if len(hex_string) % 2 != 0:
                 hex_string = "0" + hex_string
 
-            print(f'Hex String: {hex_string}, Type: {type(hex_string)}')
-
             bytes_string = bytes.fromhex(hex_string)
-            print(bytes_string, type(bytes_string))
-            bytes_string = base64.b32encode(bytes_string)
-            print(bytes_string, type(bytes_string))
-            
-            string = bytes_string.decode('utf-8')  # Assuming UTF-8 encoding
-            print(string)
-            
-            # otp_verified = verify_otp(device.key, otp_value)
+            bytes_string = base64.b32encode(bytes_string)            
+            string = bytes_string.decode('utf-8')
 
             otp_verified = verify_otp(string, otp_value)
-            print(otp_verified)
-
-            print(f"\n")
 
             if otp_verified:
                 break
