@@ -9,6 +9,8 @@ from io import BytesIO
 import base64
 from PIL import Image
 from io import BytesIO
+import urllib.parse
+from urllib.parse import quote
 
 import pyotp
 import base64
@@ -32,7 +34,7 @@ def generate_secret_key(length=20, encoded=False):
     secret_key = secrets.token_bytes(length)
     # return b'\xb5\xde\x93\x7f\x15\xd7\x9f\xadX{\xe5\xac\\P\xf6#\xb1$J\xf9'
     # return "LPGTHBSQCOFJC45VPEKJFSRBVOWBGJNG"    
-    secret_key = "5Z244NYBQDVJOUTQ3W3QEZLTHB4QB74Z"
+    secret_key = "RUFFGUERPVIP6JCOGMYTU7U6Y7H7XUTN"
 
     # Remove any non-hexadecimal characters from the string
     hex_string = re.sub(r'[^a-fA-F0-9]', '', secret_key)
@@ -68,17 +70,25 @@ def verify_otp(secret, otp_value):
 
 class TFASetupView(APIView):
     def get(self, request, *args, **kwargs):
-        from urllib.parse import quote
-
         username = 'rkshaon'
         secret = generate_secret_key()
-        encoded_secret = quote(secret)  # URL-encode the secret
-        account_label = f"{request.get_host()} {username}"
-        # otpauth_url = f'otpauth://totp/{account_label}?secret={secret}&digits=6&issuer={username}'
-        # otpauth_url = f"otpauth://totp/{username}?secret={secret}%3D%3D%3D&algorithm=SHA1&digits=6&period=30"
-        # otpauth_url = f"otpauth://totp/{username}?secret={secret}&algorithm=SHA1&digits=6&period=30"
-        otpauth_url = f"otpauth://totp/{username}?secret={encoded_secret}&algorithm=SHA1&digits=6&period=30"
-        print(otpauth_url)
+        secret = re.sub(r'[^a-fA-F0-9]', '', secret)
+        
+        if len(secret) % 2 != 0:
+            secret = "0" + secret
+
+        secret = bytes.fromhex(secret)
+        secret = base64.b64encode(secret).decode()
+        secret = secret.encode('utf-8')
+        secret = secret.hex()
+        secret = bytes.fromhex(secret).decode('utf-8')
+        secret = base64.b32encode(secret.encode('utf-8'))
+        secret = secret.decode('utf-8')
+        secret = urllib.parse.quote(secret, safe='')
+        
+        otpauth_url = f"otpauth://totp/{username}?secret={secret}&algorithm=SHA1&digits=6&period=30"
+        print(f"\nOTP auth URL: {otpauth_url}\n")
+        
         qr = qrcode.make(otpauth_url)
         buffered = BytesIO()
         qr.save(buffered, format="PNG")
@@ -98,7 +108,7 @@ class TFASetupView(APIView):
         secret = generate_secret_key()
         otp_value = request.data.get('otp')
         otp_verified = verify_otp(secret, otp_value)
-
+        print(otp_verified)
         # Remove any non-hexadecimal characters from the string
         hex_string = secret
         hex_string = re.sub(r'[^a-fA-F0-9]', '', hex_string)
@@ -113,7 +123,8 @@ class TFASetupView(APIView):
         secret = secret.encode('utf-8')
         # secret = bytes_string.encode('utf-8')
         secret = secret.hex()
-
+        otp_verified = verify_otp(secret, otp_value)
+        print(otp_verified)
         if otp_verified:
             device = TOTPDevice.objects.create(user=user, name=username, confirmed=True, key=secret)
             device.save()
